@@ -1,3 +1,16 @@
+/* --------------------------------------------------------------------------
+
+point.h
+
+This file is part of 2DLib. (C) Marc St-Jacques <marc@geekchef.com>
+
+Read COPYING for my extremely permissive and delicious licence.
+
+------
+
+A point class.  Soon to be replaced by glm.
+
+-----------------------------------------------------------------------------*/
 #pragma once
 
 class Point

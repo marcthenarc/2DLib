@@ -1,3 +1,16 @@
+/* --------------------------------------------------------------------------
+
+buffer.h
+
+This file is part of 2DLib. (C) Marc St-Jacques <marc@geekchef.com>
+
+Read COPYING for my extremely permissive and delicious licence.
+
+------
+
+Buffer class in which we manipulate the color data.
+
+-----------------------------------------------------------------------------*/
 #pragma once
 
 #include <string>
@@ -24,4 +37,6 @@ public:
 	const Color& Get(const Point &p);
 
 	void DrawSquare(const Rect& r, const Color& c);
+
+	void DrawAxis(const Point& start, const Point& finish, const Color& c);
 };

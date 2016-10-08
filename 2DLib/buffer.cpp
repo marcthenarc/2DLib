@@ -1,4 +1,17 @@
-#include "Buffer.h"
+/* --------------------------------------------------------------------------
+
+buffer.cpp
+
+This file is part of 2DLib. (C) Marc St-Jacques <marc@geekchef.com>
+
+Read COPYING for my extremely permissive and delicious licence.
+
+------
+
+Buffer class in which we manipulate the color data.
+
+-----------------------------------------------------------------------------*/
+#include "buffer.h"
 
 Buffer::Buffer()
 {
@@ -33,7 +46,7 @@ bool Buffer::SaveAsTGA(const std::string &filename)
 		// Write all data as BGR components.
 		for (size_t i=0; i<colors.size(); i++)
 		{
-			colors[i].GetAsBGR(bgr);
+			RGBA::GetAsBGR(colors[i], bgr);
 			fwrite(bgr, 3, 1, fp);
 		}
 
@@ -76,7 +89,7 @@ bool Buffer::ReadFromTGA(const std::string &filename)
 			if (feof(fp))
 				return false;
 
-			c.SetAsBGR(bgr);
+			RGBA::SetAsRGB(c, bgr);
 			colors.push_back(c);
 		}
 
@@ -153,5 +166,60 @@ void Buffer::DrawSquare(const Rect& r, const Color& c)
 
 			keep += size.W;
 		}
+	}
+}
+
+void Buffer::DrawAxis(const Point& start, const Point& finish, const Color& c)
+{
+	// X axis
+	if (start.Y == finish.Y && start.Y >= 0 && finish.Y < size.H)
+	{
+		int SX = start.X, FX = finish.X;
+
+		// Invert in case
+		if (start.X > finish.X)
+		{
+			SX = finish.X;
+			FX = start.X;
+		}
+
+		// Boundary
+		if (SX < 0)
+			SX = 0;
+
+		if (FX >= size.W)
+			FX = size.W - 1;
+
+		// 
+		int begin = start.Y * size.W + SX;
+		int end = start.Y * size.W + FX;
+
+		for (int j = begin; j < end; j++)
+			colors[j] = c;		
+	}
+	// Y axis
+	else if (start.X == finish.X && start.X >= 0 && finish.X < size.W)
+	{
+		int SY = start.Y, FY = finish.Y;
+
+		// Invert in case
+		if (start.Y > finish.Y)
+		{
+			SY = finish.Y;
+			FY = start.Y;
+		}
+
+		// Boundary
+		if (SY < 0)
+			SY = 0;
+
+		if (FY >= size.H)
+			FY = size.H - 1;
+
+		int begin = start.Y * size.W + SY;
+		int end = begin + (FY - SY + 1) * size.W;
+
+		for (int j = begin; j <= end; j += size.W)
+			colors[j] = c;
 	}
 }

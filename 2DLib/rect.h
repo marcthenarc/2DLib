@@ -1,3 +1,16 @@
+/* --------------------------------------------------------------------------
+
+rect.h
+
+This file is part of 2DLib. (C) Marc St-Jacques <marc@geekchef.com>
+
+Read COPYING for my extremely permissive and delicious licence.
+
+------
+
+A rectangle class.
+
+-----------------------------------------------------------------------------*/
 #pragma once
 
 #include "point.h"
@@ -10,6 +23,6 @@ public:
 	Size S;
 	Point P;
 
-	Rect();
+	Rect() { }
 	Rect(const Point& p, const Size& s) : P(p), S(s) { }
 };
