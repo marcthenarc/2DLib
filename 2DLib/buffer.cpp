@@ -190,7 +190,6 @@ void Buffer::DrawAxis(const Point& start, const Point& finish, const Color& c)
 		if (FX >= size.W)
 			FX = size.W - 1;
 
-		// 
 		int begin = start.Y * size.W + SX;
 		int end = start.Y * size.W + FX;
 
@@ -216,8 +215,8 @@ void Buffer::DrawAxis(const Point& start, const Point& finish, const Color& c)
 		if (FY >= size.H)
 			FY = size.H - 1;
 
-		int begin = start.Y * size.W + SY;
-		int end = begin + (FY - SY + 1) * size.W;
+		int begin = SY * size.W + start.X;
+		int end = begin + (FY - SY) * size.W;
 
 		for (int j = begin; j <= end; j += size.W)
 			colors[j] = c;
