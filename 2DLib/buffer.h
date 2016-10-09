@@ -36,7 +36,9 @@ public:
 	void Set(const Point &p, const Color& c);
 	const Color& Get(const Point &p);
 
-	void DrawSquare(const Rect& r, const Color& c);
+	void DrawSquare(const Rect& r, const Color &c);
+	void FillSquare(const Rect& r, const Color& c);
+
 
 	void DrawAxis(const Point& start, const Point& finish, const Color& c);
 };

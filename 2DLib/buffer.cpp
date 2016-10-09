@@ -166,6 +166,30 @@ void Buffer::DrawSquare(const Rect& r, const Color& c)
 	{
 		int keep = newRect.P.Y * size.W + newRect.P.X;
 
+		for (int j = 0; j<newRect.S.H; j++)
+		{
+			int start = keep;
+
+			for (int i = 0; i < newRect.S.W; i++, start++)
+			{
+				// Only draw the borders.
+				if (j == 0 || j == newRect.S.H - 1 || i == 0 || i == newRect.S.W - 1)
+					colors[start] = c;
+			}
+
+			keep += size.W;
+		}
+	}
+}
+
+void Buffer::FillSquare(const Rect& r, const Color& c)
+{
+	Rect newRect = LimitArea(r);
+
+	if (newRect.S.H >= 0 && newRect.S.W >= 0)
+	{
+		int keep = newRect.P.Y * size.W + newRect.P.X;
+
 		for (int j=0; j<newRect.S.H; j++)
 		{
 			int start = keep;
