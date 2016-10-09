@@ -28,4 +28,6 @@ namespace RGBA
 
 	void GetAsBGR(const Color& color, unsigned char *bgr);
 	void SetAsRGB(Color& color, const unsigned char *rgb);
+	void GetAsBGRA(const Color& color, unsigned char *bgr, size_t size);
+	void SetAsRGBA(Color& color, const unsigned char *rgb, size_t size);
 };

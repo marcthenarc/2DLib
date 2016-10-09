@@ -24,20 +24,24 @@ Buffer::Buffer(const Size& s, const Color& c) : size(s)
 	colors.resize(size.W * size.H, c);
 }
 
-bool Buffer::SaveAsTGA(const std::string &filename)
+static unsigned char bgr[3];
+static unsigned char bgra[4];
+
+bool Buffer::SaveAsTGA(const std::string &filename, bool with_alpha)
 {
 	FILE *fp = fopen(filename.c_str(), "wb");
 
 	if (fp)
 	{
-		// TGAs are stored as blue-green-red components.
-		unsigned char bgr[3];
+		// TGAs are stored as blue-green-red components (alpha optional).
+		unsigned char *comps = (with_alpha) ? bgra : bgr;
+		size_t comps_size = (with_alpha) ? 4 : 3;
 
-		// 18 byte header.  This is a version 2 (top-down, left-right), non-compressed, 24 bit image.
+		// 18 byte header.  This is a version 2 (top-down, left-right), non-compressed, 24 or 32 bit image.
 		unsigned char header[18] = { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 		(unsigned char)(size.W & 0x00FF), (unsigned char)(size.W >> 8),
 		(unsigned char)(size.H & 0x00FF), (unsigned char)(size.H >> 8),
-		24, 0x20
+		(unsigned char)(comps_size << 3), (unsigned char)0x20
 	   };
 
 		// Write header
@@ -46,9 +50,11 @@ bool Buffer::SaveAsTGA(const std::string &filename)
 		// Write all data as BGR components.
 		for (size_t i=0; i<colors.size(); i++)
 		{
-			RGBA::GetAsBGR(colors[i], bgr);
-			fwrite(bgr, 3, 1, fp);
+			RGBA::GetAsBGRA(colors[i], comps, comps_size);
+			fwrite(comps, comps_size, 1, fp);
 		}
+
+		//// NOTE:  No footer is written.  All readers I encountered ignored the extra "developper" data.
 
 		fclose(fp);
 
@@ -67,29 +73,32 @@ bool Buffer::ReadFromTGA(const std::string &filename)
 		// make sure the array is empty.
 		colors.clear();
 
-		unsigned char bgr[3];
 		unsigned char header[18];
 
-		// 18 byte header.  This only reads version 2 (top-down, left-right), non-compressed, 24 bit image.
+		// 18 byte header.  This only reads version 2 (top-down, left-right), non-compressed, 32 bit image.
 		fread(header, 18, 1, fp);
 
 		// Get dimensions
 		size.W = (((int)header[13]) << 8) + (int)header[12];
-		size.H = (((int)header[15]) << 8) + (int)header[11];
+		size.H = (((int)header[15]) << 8) + (int)header[14];
+
+		size_t comps_size = header[16] >> 3;
+
+		unsigned char *comps = (comps_size == 4) ? bgra : bgr;
 
 		int max = size.W * size.H;
 
 		Color c;
 
 		// Read all data as BGR components.
-		for (int i=0; i<max; i++)
+		for (int i = 0; i<max; i++)
 		{
-			fread(bgr, 3, 1, fp);
+			fread(comps, comps_size, 1, fp);
 
 			if (feof(fp))
 				return false;
 
-			RGBA::SetAsRGB(c, bgr);
+			RGBA::SetAsRGBA(c, comps, comps_size);
 			colors.push_back(c);
 		}
 

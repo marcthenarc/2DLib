@@ -30,7 +30,7 @@ public:
 	Buffer();
 	Buffer(const Size& s, const Color& c);
 
-	bool SaveAsTGA(const std::string &filename);
+	bool SaveAsTGA(const std::string &filename, bool with_alpha = true);
 	bool ReadFromTGA(const std::string &filename);
 
 	void Set(const Point &p, const Color& c);
