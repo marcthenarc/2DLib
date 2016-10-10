@@ -145,6 +145,7 @@
   <ItemGroup>
     <ClCompile Include="buffer.cpp" />
     <ClCompile Include="color.cpp" />
+    <ClCompile Include="point.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

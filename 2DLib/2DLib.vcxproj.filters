@@ -35,11 +35,14 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="color.cpp">
-      <Filter>Resource Files</Filter>
+    <ClCompile Include="point.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="buffer.cpp">
-      <Filter>Resource Files</Filter>
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="color.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

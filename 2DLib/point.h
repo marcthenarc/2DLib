@@ -19,6 +19,13 @@ public:
 
 	int X, Y;
 
-	Point() : X(0), Y(0) { }
-	Point(int x, int y) : X(x), Y(y) { }
+	Point();
+	Point(int x, int y);
+
+	bool operator == (const Point& p) const;
+	bool operator != (const Point& p) const;
+	void operator += (const Point& p);
+
+	static const Point OutOfBounds;
 };
+
