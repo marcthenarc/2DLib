@@ -19,7 +19,18 @@ Buffer::Buffer()
 
 Buffer::Buffer(const Size& s, const Color& c) : size(s)
 {
-	// Force a resize of the array with the chose color.
+	Reset(c);
+}
+
+void Buffer::Reset(const Size& s, const Color& c)
+{
+	size = s;
+	Reset(c);
+}
+
+void Buffer::Reset(const Color& c)
+{
+	// Force a resize of the array with the chosen color.
 	colors.clear();
 	colors.resize(size.W * size.H, c);
 }
@@ -119,7 +130,7 @@ void Buffer::Set(const Point &p, const Color& c)
 
 static const Color nullColor;
 
-const Color & Buffer::Get(const Point &p)
+const Color & Buffer::Get(const Point &p) const
 {
 	// Check under/over flow.
 	if (p.X >= 0 && p.X < size.W && p.Y >= 0 && p.Y < size.H)
@@ -127,6 +138,21 @@ const Color & Buffer::Get(const Point &p)
 
 	// When failing, return the color black.
 	return nullColor;
+}
+
+void Buffer::LimitPoint(Point &p)
+{
+	if (p.X < 0)
+		p.X = 0;
+
+	if (p.Y < 0)
+		p.Y = 0;
+
+	if (p.X >= size.W)
+		p.X = size.W - 1;
+
+	if (p.Y >= size.H)
+		p.Y = size.H - 1;
 }
 
 Rect Buffer::LimitArea(const Rect &r)
@@ -158,100 +184,167 @@ Rect Buffer::LimitArea(const Rect &r)
 	return nr;
 }
 
-void Buffer::DrawSquare(const Rect& r, const Color& c)
+void Buffer::DrawRect(const Rect& r, const Color& c)
+{
+	Rect s = LimitArea(r);
+
+	Point p1 = r.P, p2 = p1 + Point(s.S.W, 0), p3 = p1 + Point(0, s.S.H), p4 = s.GetBottomRight();
+	
+	DrawHorizontalLine(p1, p2, c);
+	DrawHorizontalLine(p3, p4, c);
+
+	DrawVerticalLine(p1, p3, c);
+	DrawVerticalLine(p2, p4, c);
+}
+
+void Buffer::FillRect(const Rect& r, const Color& c)
 {
 	Rect newRect = LimitArea(r);
 
-	if (newRect.S.H >= 0 && newRect.S.W >= 0)
+	Point p1 = newRect.P;
+	Point p2 = p1 + Point(newRect.S.W, 0);
+	Point end = newRect.GetBottomRight();
+
+	bool quit = false;
+
+	while (!quit)
 	{
-		int keep = newRect.P.Y * size.W + newRect.P.X;
+		quit = (p2 == end);
 
-		for (int j = 0; j<newRect.S.H; j++)
+		DrawHorizontalLine(p1, p2, c);
+
+		p1 += Point(0, 1);
+		p2 += Point(0, 1);
+	}
+}
+
+void Buffer::DrawHorizontalLine(const Point& start, const Point& end, const Color& c)
+{
+	Point s = start, e = end;
+
+	// Make sure we don't bust.
+	LimitPoint(s);
+	LimitPoint(e);
+
+	// Same Y, start is smaller than end.
+	if (s.Y == e.Y && s.X <= e.X)
+	{
+		int ptr = s.Y * size.W + s.X;
+		int ptr2 = e.Y * size.W + e.X;
+
+		// start and ends overlap.
+		while (ptr <= ptr2)
+			colors[ptr++] = c;
+	}
+}
+
+void Buffer::DrawVerticalLine(const Point& start, const Point& end, const Color& c)
+{
+	Point s = start, e = end;
+
+	// Make sure we don't bust.
+	LimitPoint(s);
+	LimitPoint(e);
+
+	// Same Y, start is smaller than end.
+	if (s.X == e.X && s.Y <= e.Y)
+	{
+		int ptr = s.Y * size.W + s.X;
+		int ptr2 = e.Y * size.W + e.X;
+
+		// start and ends overlap.
+		while (ptr <= ptr2)
 		{
-			int start = keep;
-
-			for (int i = 0; i < newRect.S.W; i++, start++)
-			{
-				// Only draw the borders.
-				if (j == 0 || j == newRect.S.H - 1 || i == 0 || i == newRect.S.W - 1)
-					colors[start] = c;
-			}
-
-			keep += size.W;
+			colors[ptr] = c;
+			ptr += size.W;
 		}
 	}
 }
 
-void Buffer::FillSquare(const Rect& r, const Color& c)
+bool Buffer::Scan(const Point &start, const Point &end, ScanDirection dir, ScanState state, const Color &c, Point& hit)
 {
-	Rect newRect = LimitArea(r);
+	bool right = (start.X <= end.X);
+	bool down = (start.Y <= end.Y);
 
-	if (newRect.S.H >= 0 && newRect.S.W >= 0)
+	hit = start;
+	Point stop = end;
+
+	while (hit != stop)
 	{
-		int keep = newRect.P.Y * size.W + newRect.P.X;
-
-		for (int j=0; j<newRect.S.H; j++)
+		if (Get(hit) == c)
 		{
-			int start = keep;
-
-			for (int i=0; i<newRect.S.W; i++, start++)
-				colors[start] = c;
-
-			keep += size.W;
+			if (state == MUST_FIND)
+				return true;
 		}
+		else
+		{
+			if (state == MUST_ONLY_FIND)
+				return false;
+		}
+
+		if (dir == HORZ)
+			hit += Point((right) ? 1 : -1, 0);
+		else
+			hit += Point(0, (down) ? 1 : -1);
 	}
+
+	return (state == MUST_ONLY_FIND);
 }
 
-void Buffer::DrawAxis(const Point& start, const Point& finish, const Color& c)
+Rect Buffer::IsolateRect(const Rect& r, const Color& avoid)
 {
-	// X axis
-	if (start.Y == finish.Y && start.Y >= 0 && finish.Y < size.H)
+	int left = r.P.X + 1, top = r.P.Y + 1, right = r.GetBottomRight().X - 1, bottom = r.GetBottomRight().Y - 1;
+
+	Point hit; // will not be used but Scan needs it.
+	
+	// Scan horizontaly and go down until we hit something.
+	while (Scan(Point(left, top), Point(right, top), HORZ, MUST_ONLY_FIND, avoid, hit))
+		top += 1;
+
+	// Scan verticaly and go left until we hit something.
+	while (Scan(Point(left, top), Point(left, bottom), VERT, MUST_ONLY_FIND, avoid, hit))
+		left += 1;
+
+	// Scan horizontaly and go upon until we hit something.
+	while (Scan(Point(left, bottom), Point(right, bottom), HORZ, MUST_ONLY_FIND, avoid, hit))
+		bottom -= 1;
+
+	// Scan verticaly and go right until we hit something.
+	while (Scan(Point(right, top), Point(right, bottom), VERT, MUST_ONLY_FIND, avoid, hit))
+		right -= 1;
+
+	return Rect(Point(left, top), Point(right, bottom));
+}
+
+void Buffer::CopyLineFromBuffer(int dst, int src, int size,  const Buffer& from)
+{
+	for (int i = 0; i <= size; i++, dst++, src++)
+		colors[dst] = from.colors[src];
+}
+
+void Buffer::CopyRectFromBuffer(const Rect& dst, const Rect& src, const Buffer& from)
+{
+	int left1 = dst.P.Y * size.W + dst.P.X;
+	int right1 = dst.P.Y * size.W + (dst.P.X + dst.S.W);
+
+	int left2 = src.P.Y * from.size.W + src.P.X;
+	int right2 = src.P.Y * from.size.W + (src.P.X + src.S.W);
+	int end = src.S.H * from.size.W + right2;
+
+	bool quit = false;
+
+	while(!quit)
 	{
-		int SX = start.X, FX = finish.X;
+		// One last time before quitting the loop.
+		if (right2 == end)
+			quit = true;
 
-		// Invert in case
-		if (start.X > finish.X)
-		{
-			SX = finish.X;
-			FX = start.X;
-		}
+		CopyLineFromBuffer(left1, left2, right1 - left1, from);
 
-		// Boundary
-		if (SX < 0)
-			SX = 0;
+		left1 += size.W;
+		right1 += size.W;
 
-		if (FX >= size.W)
-			FX = size.W - 1;
-
-		int begin = start.Y * size.W + SX;
-		int end = start.Y * size.W + FX;
-
-		for (int j = begin; j < end; j++)
-			colors[j] = c;		
-	}
-	// Y axis
-	else if (start.X == finish.X && start.X >= 0 && finish.X < size.W)
-	{
-		int SY = start.Y, FY = finish.Y;
-
-		// Invert in case
-		if (start.Y > finish.Y)
-		{
-			SY = finish.Y;
-			FY = start.Y;
-		}
-
-		// Boundary
-		if (SY < 0)
-			SY = 0;
-
-		if (FY >= size.H)
-			FY = size.H - 1;
-
-		int begin = SY * size.W + start.X;
-		int end = begin + (FY - SY) * size.W;
-
-		for (int j = begin; j <= end; j += size.W)
-			colors[j] = c;
+		left2 += from.size.W;
+		right2 += from.size.W;
 	}
 }

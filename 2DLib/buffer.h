@@ -20,25 +20,43 @@ Buffer class in which we manipulate the color data.
 
 class Buffer
 {
+protected:
+
 	std::vector<Color> colors;
 	Size size;
 
+	void LimitPoint(Point &p);
 	Rect LimitArea(const Rect &r);
 
 public:
 
+	enum ScanDirection { HORZ, VERT };
+	enum ScanState { MUST_FIND, MUST_ONLY_FIND };
+
 	Buffer();
 	Buffer(const Size& s, const Color& c);
+	void Reset(const Size& s, const Color& c);
+	void Reset(const Color& c);
 
 	bool SaveAsTGA(const std::string &filename, bool with_alpha = true);
 	bool ReadFromTGA(const std::string &filename);
 
 	void Set(const Point &p, const Color& c);
-	const Color& Get(const Point &p);
+	const Color& Get(const Point &p) const;
 
-	void DrawSquare(const Rect& r, const Color &c);
-	void FillSquare(const Rect& r, const Color& c);
+	void DrawHorizontalLine(const Point &p, const Point &q, const Color& c);
+	void DrawVerticalLine(const Point& start, const Point& end, const Color& c);
 
+	void DrawRect(const Rect& r, const Color &c);
+	void FillRect(const Rect& r, const Color& c);
+	bool Scan(const Point &start, const Point &end, ScanDirection dir, ScanState s, const Color &c, Point& hit);
+	Rect IsolateRect(const Rect& r, const Color& avoid);
 
-	void DrawAxis(const Point& start, const Point& finish, const Color& c);
+	void CopyLineFromBuffer(int start1, int start2, int size, const Buffer& target);
+	void CopyRectFromBuffer(const Rect& r1, const Rect& r2, const Buffer& target);
+
+	inline Size GetSize() const
+	{
+		return size;
+	}
 };
