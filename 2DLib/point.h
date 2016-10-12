@@ -13,6 +13,8 @@ A point class.  Soon to be replaced by glm.
 -----------------------------------------------------------------------------*/
 #pragma once
 
+#include <ostream>
+
 class Point
 {
 public:
@@ -24,8 +26,16 @@ public:
 
 	bool operator == (const Point& p) const;
 	bool operator != (const Point& p) const;
-	void operator += (const Point& p);
+	Point & operator += (const Point& p);
+	Point operator + (const Point& p) const;
+	Point & operator -= (const Point& p);
+	Point operator - (const Point& p) const;
 
+	Point MaxRight() const;
+	Point MaxDown() const;
+
+	static const Point Origin;
 	static const Point OutOfBounds;
 };
 
+std::ostream & operator << (std::ostream &os, const Point &p);

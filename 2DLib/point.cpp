@@ -1,5 +1,7 @@
 #include "point.h"
+#include <limits>
 
+const Point Point::Origin(0, 0);
 const Point Point::OutOfBounds(-1, -1);
 
 Point::Point()
@@ -26,10 +28,50 @@ bool Point::operator != (const Point& p) const
 	return (X != p.X || Y != p.Y);
 }
 
-void Point::operator += (const Point& p)
+Point& Point::operator += (const Point& p)
 {
 	X += p.X;
 	Y += p.Y;
+
+	return *this;
+}
+
+Point Point::operator + (const Point& p) const
+{
+	Point t = *this;
+	t += p;
+	return t;
+}
+
+Point& Point::operator -= (const Point& p)
+{
+	X -= p.X;
+	Y -= p.Y;
+
+	return *this;
+}
+
+Point Point::operator - (const Point& p) const
+{
+	Point t = *this;
+	t -= p;
+	return t;
+}
+
+Point Point::MaxRight() const
+{
+	return Point(std::numeric_limits<int>::max(), Y);
+}
+
+Point Point::MaxDown() const
+{
+	return Point(X, std::numeric_limits<int>::max());
+}
+
+std::ostream & operator << (std::ostream &os, const Point &p)
+{
+	os << "<" << p.X << ", " << p.Y  << ">";
+	return os;
 }
 
 
