@@ -19,6 +19,7 @@ typedef glm::vec4 Color;
 
 namespace RGBA
 {
+	static const Color NoAlpha(0.f, 0.f, 0.f, 0.f);
 	static const Color White(1.f, 1.f, 1.f, 1.f);
 	static const Color Black(0.f, 0.f, 0.f, 1.f);
 	static const Color Grey(0.5f, 0.5f, 0.5f, 1.f);
