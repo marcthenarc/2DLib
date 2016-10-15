@@ -1,3 +1,17 @@
+/* --------------------------------------------------------------------------
+
+point.h
+
+This file is part of 2DLib. (C) 2016 Marc St-Jacques <marc@geekchef.com>
+
+Read COPYING for my extremely permissive and delicious licence.
+
+------
+
+A point class.
+
+-----------------------------------------------------------------------------*/
+
 #include "point.h"
 #include <limits>
 
@@ -73,5 +87,3 @@ std::ostream & operator << (std::ostream &os, const Point &p)
 	os << "<" << p.X << ", " << p.Y  << ">";
 	return os;
 }
-
-

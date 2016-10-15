@@ -2,7 +2,7 @@
 
 rect.h
 
-This file is part of 2DLib. (C) Marc St-Jacques <marc@geekchef.com>
+This file is part of 2DLib. (C) 2016 Marc St-Jacques <marc@geekchef.com>
 
 Read COPYING for my extremely permissive and delicious licence.
 
@@ -11,42 +11,47 @@ Read COPYING for my extremely permissive and delicious licence.
 A rectangle class.
 
 -----------------------------------------------------------------------------*/
+
 #pragma once
 
 #include "point.h"
 #include "size.h"
+#include <vector>
 
 class Rect
 {
+
 public:
 
-	Size S;
-	Point P;
+	int left;
+	int top;
+	int right;
+	int bottom;
 
-	Rect() { }
-	Rect(const Point& p, const Size& s) : P(p), S(s) { }
-	Rect(const Point &p, const Point &q) : P(p), S((q - p).X, (q - p).Y) { }
+	Rect();
+	Rect(const Point& p, const Size& s);
+	Rect(const Point &p, const Point &q);
 
-	void Grow(int g)
-	{
-		P.X -= g;
-		P.Y -= g;
+	void Grow(int g);
+	void Shrink(int s);
 
-		S.W += g * 2;
-		S.H += g * 2;
-	}
+	int GetWidth() const;
+	int GetHeight() const;
 
-	void Shrink(int s)
-	{
-		P.X += s;
-		P.Y += s;
+	Point GetTopLeft() const;
+	Point GetTopRight() const;
+	Point GetBottomLeft() const;
+	Point GetBottomRight() const;
 
-		S.W += s * 2;
-		S.H -= s * 2;
-	}
+	std::vector<Rect> SplitHorizontally(int y);
+	std::vector<Rect> SplitVertically(int x);
 
-	Point GetBottomRight() const
-	{
-		return Point(P.X + S.W, P.Y + S.H);
-	}
+	bool operator == (const Rect& r) const;
+	bool operator < (const Rect& r) const;
+	Rect& operator += (const Point& p);
+	Rect operator + (const Point& p) const;
+
+protected:
+
+	void Limit(Size &size);
 };

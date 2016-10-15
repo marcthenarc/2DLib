@@ -8,23 +8,28 @@ Read COPYING for my extremely permissive and delicious licence.
 
 ------
 
-A size class.  
+A size class.
 
 -----------------------------------------------------------------------------*/
 
-#pragma once
+#include "size.h"
 
-#include <iostream>
-
-class Size
+Size::Size()
+	: W(0)
+	, H(0)
 {
-public:
 
-	int W, H;
+}
 
-	Size();
-	Size(int w, int h);
-};
+Size::Size(int w, int h)
+	: W(w)
+	, H(h)
+{
 
-std::ostream & operator << (std::ostream &os, const Size& s);
+}
 
+std::ostream & operator << (std::ostream &os, const Size& s)
+{
+	os << "<width=" << s.W << ", height=" << s.H << ">";
+	return os;
+}

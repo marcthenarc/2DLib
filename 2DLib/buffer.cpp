@@ -2,9 +2,23 @@
 
 buffer.cpp
 
-This file is part of 2DLib. (C) Marc St-Jacques <marc@geekchef.com>
+This file is part of 2DLib. (C) 2016 Marc St-Jacques <marc@geekchef.com>
 
 Read COPYING for my extremely permissive and delicious licence.
+
+---
+
+Parts from ReadFromPNG() and SaveFromPNG() are from a demo program at http://zarb.org/~gc/html/libpng.html
+Copyright 2002-2010 Guillaume Cottenceau under the X11 license:
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies
+or substantial portions of the Software.
 
 ------
 
@@ -12,6 +26,8 @@ Buffer class in which we manipulate the color data.
 
 -----------------------------------------------------------------------------*/
 #include "buffer.h"
+#include <iostream>
+#include <png.h>
 
 Buffer::Buffer()
 {
@@ -121,6 +137,182 @@ bool Buffer::ReadFromTGA(const std::string &filename)
 	return false;
 }
 
+bool Buffer::ReadFromPNG(const std::string &filename)
+{
+	int m_nW, m_nH;
+	png_bytep * row_pointers;
+	png_byte m_nColorType;
+	png_byte m_nBitDepth;
+
+
+	png_structp png_ptr;
+	//int number_of_passes;
+	png_infop info_ptr;
+	png_byte header[8];    // 8 is the maximum size that can be checked
+
+						   /* open file and test for it being a png */
+	FILE *fp = fopen(filename.c_str(), "rb");
+
+	if (!fp)
+		PNG_Exception(filename, "[read_png_file] couldn't open file for reading");
+
+	fread(header, 1, 8, fp);
+
+	if (png_sig_cmp(header, 0, 8))
+		PNG_Exception(filename, "[read_png_file] File %s is not recognized as a PNG file");
+
+	/* initialize stuff */
+	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+
+	if (!png_ptr)
+		PNG_Exception(filename, "[read_png_file] png_create_read_struct failed");
+
+	info_ptr = png_create_info_struct(png_ptr);
+
+	if (!info_ptr)
+		PNG_Exception(filename, "[read_png_file] png_create_info_struct failed");
+
+	if (setjmp(png_jmpbuf(png_ptr)))
+		PNG_Exception(filename, "[read_png_fileme, ] Error during init_io");
+
+	png_init_io(png_ptr, fp);
+	png_set_sig_bytes(png_ptr, 8);
+
+	png_read_info(png_ptr, info_ptr);
+
+	m_nW = png_get_image_width(png_ptr, info_ptr);
+	m_nH = png_get_image_height(png_ptr, info_ptr);
+	m_nColorType = png_get_color_type(png_ptr, info_ptr);
+	m_nBitDepth = png_get_bit_depth(png_ptr, info_ptr);
+
+	//number_of_passes = png_set_interlace_handling(png_ptr);
+	png_read_update_info(png_ptr, info_ptr);
+
+	/* read file */
+	if (setjmp(png_jmpbuf(png_ptr)))
+		PNG_Exception(filename, "[read_png_file] Error during read_image");
+
+	row_pointers = new png_bytep[sizeof(png_bytep) * m_nH];
+
+	for (int y = 0; y<m_nH; y++)
+		row_pointers[y] = new png_byte[png_get_rowbytes(png_ptr, info_ptr)];
+
+	png_read_image(png_ptr, row_pointers);
+	/*
+	if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_RGB)
+	PNG_Exception(filename, "[process_file] input file is PNG_COLOR_TYPE_RGB but must be PNG_COLOR_TYPE_RGBA "
+	"(lacks the alpha channel)");
+
+	if (png_get_color_type(png_ptr, info_ptr) != PNG_COLOR_TYPE_RGBA)
+	PNG_Exception(filename, "[process_file] color_type of input file must be PNG_COLOR_TYPE_RGBA (%d) (is %d)",
+	PNG_COLOR_TYPE_RGBA, png_get_color_type(png_ptr, info_ptr));
+	*/
+	fclose(fp);
+
+	return true;
+}
+
+// Note:  I wanted to create a single array of unsigned char's in which each
+// row stored in row_pointers would a be a pointer to a location in the array.
+// For some reason, it doesn't work.  Maybe the PNG engine checks on the length
+// of each continuous row to match the width ...
+
+// So I use a new and a delete.
+
+bool Buffer::SaveAsPNG(const std::string &filename, bool with_alpha)
+{
+	std::vector<unsigned char *> all_rows;
+	unsigned char comps[4];
+	int k = 0;
+
+	for (int j=0; j<size.H; j++)
+	{
+		std::vector<unsigned char> *row = new std::vector<unsigned char>();
+
+		for (int i=0; i<size.W; i++, k++)
+		{
+			RGBA::GetAsRGBA(colors[k], comps, 4);
+
+			row->push_back(comps[0]);
+			row->push_back(comps[1]);
+			row->push_back(comps[2]);
+			row->push_back(comps[3]);
+		}
+
+		all_rows.push_back(row->data());
+	}
+
+	png_bytep* row_pointers = (png_bytep *)all_rows.data();
+	png_byte m_nColorType = 6;
+	png_byte m_nBitDepth = 8;
+
+	png_structp png_ptr;
+	//int number_of_passes;
+	png_infop info_ptr;
+	//	png_byte header[8];    // 8 is the maximum size that can be checked
+
+	/* create file */
+	FILE *fp = fopen(filename.c_str(), "wb");
+
+	if (!fp)
+		PNG_Exception(filename, "[write_png_file] File %s could not be opened for writing");
+
+	/* initialize stuff */
+	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+
+	if (!png_ptr)
+		PNG_Exception(filename, "[write_png_file] png_create_write_struct failed");
+
+	info_ptr = png_create_info_struct(png_ptr);
+
+	if (!info_ptr)
+		PNG_Exception(filename, "[write_png_file] png_create_info_struct failed");
+
+	if (setjmp(png_jmpbuf(png_ptr)))
+		PNG_Exception(filename, "[write_png_file] Error during init_io");
+
+	png_init_io(png_ptr, fp);
+
+	/* write header */
+	if (setjmp(png_jmpbuf(png_ptr)))
+		PNG_Exception(filename, "[write_png_file] Error during writing header");
+
+	png_set_IHDR(png_ptr, info_ptr, size.W, size.H,
+		m_nBitDepth, m_nColorType, PNG_INTERLACE_NONE,
+		PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+
+	png_write_info(png_ptr, info_ptr);
+
+	/* write bytes */
+	if (setjmp(png_jmpbuf(png_ptr)))
+		PNG_Exception(filename, "[write_png_file] Error during writing bytes");
+
+	png_write_image(png_ptr, row_pointers);
+
+	/* end write */
+	if (setjmp(png_jmpbuf(png_ptr)))
+		PNG_Exception(filename, "[write_png_file] Error during end of write");
+
+	png_write_end(png_ptr, NULL);
+
+	fclose(fp);
+
+	// Clean up
+	for (auto row : all_rows)
+		delete row;
+
+	return true;
+}
+
+void Buffer::Sanitize()
+{
+	for (auto& c : colors)
+	{
+		if (c.a == 0.f)
+			c = RGBA::NoAlpha;
+	}
+}
+
 void Buffer::Set(const Point &p, const Color& c)
 {
 	// Check under/over flow.
@@ -134,7 +326,10 @@ const Color & Buffer::Get(const Point &p) const
 {
 	// Check under/over flow.
 	if (p.X >= 0 && p.X < size.W && p.Y >= 0 && p.Y < size.H)
+	{
+		int z = p.Y * size.W + p.X;
 		return colors[p.Y * size.W + p.X];
+	}
 
 	// When failing, return the color black.
 	return nullColor;
@@ -155,41 +350,28 @@ void Buffer::LimitPoint(Point &p)
 		p.Y = size.H - 1;
 }
 
-Rect Buffer::LimitArea(const Rect &r)
+void Buffer::LimitRect(Rect &r)
 {
-	Rect nr = r;
+	if (r.left < 0)
+		r.left = 0;
 
-	if (nr.P.X < 0)
-	{
-		nr.S.W += nr.P.X;
-		nr.P.X = 0;
-	}
+	if (r.top < 0)
+		r.top = 0;
 
-	if (nr.P.Y < 0)
-	{
-		nr.S.H += nr.P.Y;
-		nr.P.Y = 0;
-	}
+	if (r.right >= size.W)
+		r.right = size.W - 1;
 
-	if (nr.P.X + nr.S.W >= size.W)
-	{
-		nr.S.W = size.W - nr.P.X;
-	}
-
-	if (nr.P.Y + nr.S.H >= size.H)
-	{
-		nr.S.H = size.H - nr.P.Y;
-	}
-
-	return nr;
+	if (r.bottom >= size.H)
+		r.bottom = size.H - 1;
 }
 
 void Buffer::DrawRect(const Rect& r, const Color& c)
 {
-	Rect s = LimitArea(r);
+	Rect lr = r;
+	LimitRect(lr);
 
-	Point p1 = r.P, p2 = p1 + Point(s.S.W, 0), p3 = p1 + Point(0, s.S.H), p4 = s.GetBottomRight();
-	
+	Point p1 = lr.GetTopLeft(), p2 = lr.GetTopRight(), p3 = lr.GetBottomLeft(), p4 = lr.GetBottomRight();
+
 	DrawHorizontalLine(p1, p2, c);
 	DrawHorizontalLine(p3, p4, c);
 
@@ -199,18 +381,15 @@ void Buffer::DrawRect(const Rect& r, const Color& c)
 
 void Buffer::FillRect(const Rect& r, const Color& c)
 {
-	Rect newRect = LimitArea(r);
+	Rect lr = r;
+	LimitRect(lr);
 
-	Point p1 = newRect.P;
-	Point p2 = p1 + Point(newRect.S.W, 0);
-	Point end = newRect.GetBottomRight();
+	Point p1 = lr.GetTopLeft();
+	Point p2 = lr.GetTopRight();
+	Point end = lr.GetBottomLeft() + Point(0, 1);
 
-	bool quit = false;
-
-	while (!quit)
+	while (p1 != end)
 	{
-		quit = (p2 == end);
-
 		DrawHorizontalLine(p1, p2, c);
 
 		p1 += Point(0, 1);
@@ -229,12 +408,12 @@ void Buffer::DrawHorizontalLine(const Point& start, const Point& end, const Colo
 	// Same Y, start is smaller than end.
 	if (s.Y == e.Y && s.X <= e.X)
 	{
-		int ptr = s.Y * size.W + s.X;
+		int ptr1 = s.Y * size.W + s.X;
 		int ptr2 = e.Y * size.W + e.X;
 
 		// start and ends overlap.
-		while (ptr <= ptr2)
-			colors[ptr++] = c;
+		while (ptr1 <= ptr2)
+			colors[ptr1++] = c;
 	}
 }
 
@@ -249,14 +428,14 @@ void Buffer::DrawVerticalLine(const Point& start, const Point& end, const Color&
 	// Same Y, start is smaller than end.
 	if (s.X == e.X && s.Y <= e.Y)
 	{
-		int ptr = s.Y * size.W + s.X;
+		int ptr1 = s.Y * size.W + s.X;
 		int ptr2 = e.Y * size.W + e.X;
 
 		// start and ends overlap.
-		while (ptr <= ptr2)
+		while (ptr1 <= ptr2)
 		{
-			colors[ptr] = c;
-			ptr += size.W;
+			colors[ptr1] = c;
+				ptr1 += size.W;
 		}
 	}
 }
@@ -271,11 +450,16 @@ bool Buffer::Scan(const Point &start, const Point &end, ScanDirection dir, ScanS
 
 	while (hit != stop)
 	{
-		if (Get(hit) == c)
+		Color hc = Get(hit);
+
+		// Check hit.  Consider transparent pixels to be one of the same regardless of color.
+		if (hc == c) // || (c == RGBA::NoAlpha && hc.a == 0.f))
 		{
 			if (state == MUST_FIND)
 				return true;
 		}
+		else if (hit.X >= this->size.W)
+			return false;
 		else
 		{
 			if (state == MUST_ONLY_FIND)
@@ -293,27 +477,28 @@ bool Buffer::Scan(const Point &start, const Point &end, ScanDirection dir, ScanS
 
 Rect Buffer::IsolateRect(const Rect& r, const Color& avoid)
 {
-	int left = r.P.X + 1, top = r.P.Y + 1, right = r.GetBottomRight().X - 1, bottom = r.GetBottomRight().Y - 1;
+	Point notUsed; // will not be used but Scan() needs it in some other case.
 
-	Point hit; // will not be used but Scan needs it.
+	Rect lrc = r;
+	LimitRect(lrc);
 	
-	// Scan horizontaly and go down until we hit something.
-	while (Scan(Point(left, top), Point(right, top), HORZ, MUST_ONLY_FIND, avoid, hit))
-		top += 1;
+	// Scan horizontally and go down until we hit something.
+	while (Scan(lrc.GetTopLeft(), lrc.GetTopRight(), HORZ, MUST_ONLY_FIND, avoid, notUsed))
+		lrc.top++;
 
-	// Scan verticaly and go left until we hit something.
-	while (Scan(Point(left, top), Point(left, bottom), VERT, MUST_ONLY_FIND, avoid, hit))
-		left += 1;
+	// Scan vertically and go left until we hit something.
+	while (Scan(lrc.GetTopLeft(), lrc.GetBottomLeft(), VERT, MUST_ONLY_FIND, avoid, notUsed))
+		lrc.left++;
 
-	// Scan horizontaly and go upon until we hit something.
-	while (Scan(Point(left, bottom), Point(right, bottom), HORZ, MUST_ONLY_FIND, avoid, hit))
-		bottom -= 1;
+	// Scan horizontally and go upon until we hit something.
+	while (Scan(lrc.GetBottomLeft(), lrc.GetBottomRight(), HORZ, MUST_ONLY_FIND, avoid, notUsed))
+		lrc.bottom--;
 
-	// Scan verticaly and go right until we hit something.
-	while (Scan(Point(right, top), Point(right, bottom), VERT, MUST_ONLY_FIND, avoid, hit))
-		right -= 1;
+	// Scan vertically and go right until we hit something.
+	while (Scan(lrc.GetTopRight(), lrc.GetBottomRight(), VERT, MUST_ONLY_FIND, avoid, notUsed))
+		lrc.right--;
 
-	return Rect(Point(left, top), Point(right, bottom));
+	return lrc;
 }
 
 void Buffer::CopyLineFromBuffer(int dst, int src, int size,  const Buffer& from)
@@ -324,21 +509,15 @@ void Buffer::CopyLineFromBuffer(int dst, int src, int size,  const Buffer& from)
 
 void Buffer::CopyRectFromBuffer(const Rect& dst, const Rect& src, const Buffer& from)
 {
-	int left1 = dst.P.Y * size.W + dst.P.X;
-	int right1 = dst.P.Y * size.W + (dst.P.X + dst.S.W);
+	int left1 = dst.top * size.W + dst.left;
+	int right1 = dst.top * size.W + dst.right;
 
-	int left2 = src.P.Y * from.size.W + src.P.X;
-	int right2 = src.P.Y * from.size.W + (src.P.X + src.S.W);
-	int end = src.S.H * from.size.W + right2;
+	int left2 = src.top * from.size.W + src.left;
+	int right2 = src.top * from.size.W + src.right;
+	int end = (src.bottom + 1) * from.size.W + src.left;
 
-	bool quit = false;
-
-	while(!quit)
+	while(left2 != end)
 	{
-		// One last time before quitting the loop.
-		if (right2 == end)
-			quit = true;
-
 		CopyLineFromBuffer(left1, left2, right1 - left1, from);
 
 		left1 += size.W;

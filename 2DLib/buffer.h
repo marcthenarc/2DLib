@@ -2,7 +2,7 @@
 
 buffer.h
 
-This file is part of 2DLib. (C) Marc St-Jacques <marc@geekchef.com>
+This file is part of 2DLib. (C) 2016 Marc St-Jacques <marc@geekchef.com>
 
 Read COPYING for my extremely permissive and delicious licence.
 
@@ -11,12 +11,25 @@ Read COPYING for my extremely permissive and delicious licence.
 Buffer class in which we manipulate the color data.
 
 -----------------------------------------------------------------------------*/
+
 #pragma once
 
 #include <string>
 #include <vector>
 #include "color.h"
 #include "rect.h"
+#include <string>
+
+class PNG_Exception
+{
+	std::string m_strFilename, m_strError;
+
+public:
+
+	PNG_Exception(const std::string &fn, const std::string &err) : m_strFilename(fn), m_strError(err) { }
+	~PNG_Exception() { }
+	std::string GetError() { return m_strError; }
+};
 
 class Buffer
 {
@@ -26,7 +39,7 @@ protected:
 	Size size;
 
 	void LimitPoint(Point &p);
-	Rect LimitArea(const Rect &r);
+	void LimitRect(Rect &r);
 
 public:
 
@@ -40,6 +53,10 @@ public:
 
 	bool SaveAsTGA(const std::string &filename, bool with_alpha = true);
 	bool ReadFromTGA(const std::string &filename);
+	bool SaveAsPNG(const std::string &filename, bool with_alpha = true);
+	bool ReadFromPNG(const std::string &filename);
+
+	void Sanitize();
 
 	void Set(const Point &p, const Color& c);
 	const Color& Get(const Point &p) const;
