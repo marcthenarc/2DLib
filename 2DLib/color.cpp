@@ -13,46 +13,40 @@ A Color data type based on glm with constants.
 -----------------------------------------------------------------------------*/
 #include "color.h"
 
-void RGBA::GetAsBGR(const Color& color, unsigned char *bgr)
+void RGBA::FromBGRA(Color &dst, const unsigned char *src, size_t size)
 {
-	bgr[0] = (unsigned char)(color.b * 255.f);
-	bgr[1] = (unsigned char)(color.g * 255.f);
-	bgr[2] = (unsigned char)(color.r * 255.f);
+	dst.b = (float)src[0] / 255.f;
+	dst.g = (float)src[1] / 255.f;
+	dst.r = (float)src[2] / 255.f;
+	dst.a = (size == 4) ? (float)src[3] / 255.f : 0.f;
 }
 
-void RGBA::SetAsRGB(Color& color, const unsigned char *c)
+void RGBA::FromRGBA(Color &dst, const unsigned char *src, size_t size)
 {
-	color.b = (float)c[0] / 255.f;
-	color.g = (float)c[1] / 255.f;
-	color.r = (float)c[2] / 255.f;
+	dst.r = (float)src[0] / 255.f;
+	dst.g = (float)src[1] / 255.f;
+	dst.b = (float)src[2] / 255.f;
+	dst.a = (size == 4) ? (float)src[3] / 255.f : 0.f;
 }
 
-void RGBA::GetAsBGRA(const Color& color, unsigned char *bgr, size_t size)
+void RGBA::ToBGRA(unsigned char *dst, size_t size, const Color& src)
 {
-	bgr[0] = (unsigned char)(color.b * 255.f);
-	bgr[1] = (unsigned char)(color.g * 255.f);
-	bgr[2] = (unsigned char)(color.r * 255.f);
+	dst[0] = (unsigned char)(src.b * 255.f);
+	dst[1] = (unsigned char)(src.g * 255.f);
+	dst[2] = (unsigned char)(src.r * 255.f);
 
 	if (size == 4)
-		bgr[3] = (unsigned char)(color.a * 255.f);
+		dst[3] = (unsigned char)(src.a * 255.f);
 }
 
-void RGBA::GetAsRGBA(const Color& color, unsigned char *bgr, size_t size)
+void RGBA::ToRGBA(unsigned char *dst, size_t size, const Color& src)
 {
-	bgr[0] = (unsigned char)(color.r * 255.f);
-	bgr[1] = (unsigned char)(color.g * 255.f);
-	bgr[2] = (unsigned char)(color.b * 255.f);
+	dst[0] = (unsigned char)(src.r * 255.f);
+	dst[1] = (unsigned char)(src.g * 255.f);
+	dst[2] = (unsigned char)(src.b * 255.f);
 
 	if (size == 4)
-		bgr[3] = (unsigned char)(color.a * 255.f);
-}
-
-void RGBA::SetAsRGBA(Color& color, const unsigned char *c, size_t size)
-{
-	color.b = (float)c[0] / 255.f;
-	color.g = (float)c[1] / 255.f;
-	color.r = (float)c[2] / 255.f;
-	color.a = (size == 4) ? (float)c[3] / 255.f : 1.f;
+		dst[3] = (unsigned char)(src.a * 255.f);
 }
 
 std::ostream & operator << (std::ostream &os, const Color &c)

@@ -32,12 +32,10 @@ namespace RGBA
 	static const Color Magenta(1.f, 0.f, 1.f, 1.f);
 	static const Color Cyan(0.f, 1.f, 1.f, 1.f);
 
-	void GetAsBGR(const Color& color, unsigned char *bgr);
-	void SetAsRGB(Color& color, const unsigned char *rgb);
-	void GetAsBGRA(const Color& color, unsigned char *bgr, size_t size);
-	void SetAsRGBA(Color& color, const unsigned char *rgb, size_t size);
-
-	void GetAsRGBA(const Color& color, unsigned char *bgr, size_t size);
+	void FromBGRA(Color &dest, const unsigned char *src, size_t size);
+	void FromRGBA(Color &dest, const unsigned char *src, size_t size);
+	void ToBGRA(unsigned char *dst, size_t size, const Color& src);
+	void ToRGBA(unsigned char *dst, size_t size, const Color& src);
 };
 
 std::ostream & operator << (std::ostream &os, const Color &c);

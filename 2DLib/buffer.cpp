@@ -112,7 +112,7 @@ bool Buffer::LoadFromTGA(const std::string &filename)
 			if (feof(fp))
 				return false;
 
-			RGBA::SetAsRGBA(c, comps, comps_size);
+			RGBA::FromRGBA(c, comps, comps_size);
 			colors.push_back(c);
 		}
 
@@ -147,7 +147,7 @@ bool Buffer::SaveAsTGA(const std::string &filename, bool with_alpha)
 		// Write all data as BGR components.
 		for (size_t i=0; i<colors.size(); i++)
 		{
-			RGBA::GetAsBGRA(colors[i], comps, comps_size);
+			RGBA::ToBGRA(comps, comps_size, colors[i]);
 			fwrite(comps, comps_size, 1, fp);
 		}
 
@@ -161,77 +161,98 @@ bool Buffer::SaveAsTGA(const std::string &filename, bool with_alpha)
 	return false;
 }
 
+static unsigned char rgb[3];
+static unsigned char rgba[4];
+
 bool Buffer::LoadFromPNG(const std::string &filename)
 {
-	int w, h;
-	png_bytep* row_pointers;
-	png_byte colorType;
-	png_byte bitDepth;
-
-
-	png_structp png_ptr;
-	//int number_of_passes;
-	png_infop info_ptr;
-	png_byte header[8];    // 8 is the maximum size that can be checked
-
-						   /* open file and test for it being a png */
+   /* open file and test for it being a png */
 	FILE *fp = fopen(filename.c_str(), "rb");
 
 	if (!fp)
-		PNG_Exception(filename, "[read_png_file] couldn't open file for reading");
+		PNG_Exception(filename, "[read_png_file] File %s could not be opened for reading");
 
+	char header[8];    // 8 is the maximum size that can be checked
 	fread(header, 1, 8, fp);
 
-	if (png_sig_cmp(header, 0, 8))
+	if (png_sig_cmp((png_const_bytep)header, 0, 8))
 		PNG_Exception(filename, "[read_png_file] File %s is not recognized as a PNG file");
 
 	/* initialize stuff */
-	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
 	if (!png_ptr)
 		PNG_Exception(filename, "[read_png_file] png_create_read_struct failed");
 
-	info_ptr = png_create_info_struct(png_ptr);
+	png_infop info_ptr = png_create_info_struct(png_ptr);
 
 	if (!info_ptr)
 		PNG_Exception(filename, "[read_png_file] png_create_info_struct failed");
 
 	if (setjmp(png_jmpbuf(png_ptr)))
-		PNG_Exception(filename, "[read_png_fileme, ] Error during init_io");
+		PNG_Exception(filename, "[read_png_file] Error during init_io");
 
 	png_init_io(png_ptr, fp);
 	png_set_sig_bytes(png_ptr, 8);
 
 	png_read_info(png_ptr, info_ptr);
 
-	w = png_get_image_width(png_ptr, info_ptr);
-	h = png_get_image_height(png_ptr, info_ptr);
-	colorType = png_get_color_type(png_ptr, info_ptr);
-	bitDepth = png_get_bit_depth(png_ptr, info_ptr);
+	size.W = png_get_image_width(png_ptr, info_ptr);
+	size.H = png_get_image_height(png_ptr, info_ptr);
+	png_byte colorType = png_get_color_type(png_ptr, info_ptr);
+	png_byte bitDepth = png_get_bit_depth(png_ptr, info_ptr);
 
-	//number_of_passes = png_set_interlace_handling(png_ptr);
+	int numPasses = png_set_interlace_handling(png_ptr);
 	png_read_update_info(png_ptr, info_ptr);
 
 	/* read file */
 	if (setjmp(png_jmpbuf(png_ptr)))
 		PNG_Exception(filename, "[read_png_file] Error during read_image");
 
-	row_pointers = new png_bytep[sizeof(png_bytep) * h];
-
-	for (int y = 0; y<h; y++)
-		row_pointers[y] = new png_byte[png_get_rowbytes(png_ptr, info_ptr)];
+	png_bytep* row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * size.H);
+	for (int y = 0; y < size.H; y++)
+		row_pointers[y] = (png_byte*)malloc(png_get_rowbytes(png_ptr, info_ptr));
 
 	png_read_image(png_ptr, row_pointers);
-	/*
-	if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_RGB)
-	PNG_Exception(filename, "[process_file] input file is PNG_COLOR_TYPE_RGB but must be PNG_COLOR_TYPE_RGBA "
-	"(lacks the alpha channel)");
 
-	if (png_get_color_type(png_ptr, info_ptr) != PNG_COLOR_TYPE_RGBA)
-	PNG_Exception(filename, "[process_file] color_type of input file must be PNG_COLOR_TYPE_RGBA (%d) (is %d)",
-	PNG_COLOR_TYPE_RGBA, png_get_color_type(png_ptr, info_ptr));
-	*/
 	fclose(fp);
+
+	unsigned char* r = rgba;
+	size_t s = 4;
+
+	if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_RGB)
+	{
+		r = rgb;
+		s = 3;
+	}
+	else if (png_get_color_type(png_ptr, info_ptr) != PNG_COLOR_TYPE_RGBA)
+		return false;
+
+	// Now copy values in the buffer.
+	unsigned char rgba[4];
+	Color c;
+
+	colors.clear();
+
+	for (int j = 0; j < size.H; j++)
+	{
+		png_byte *r = row_pointers[j];
+
+		for (size_t i = 0; i < size.W * s; i+=s)
+		{
+			rgba[0] = r[i+2];
+			rgba[1] = r[i+1];
+			rgba[2] = r[i];
+
+			if (s == 4)
+				rgba[3] = r[i+3];
+
+			RGBA::FromRGBA(c, rgba, 4);
+			colors.push_back(c);
+		}
+	}
+
+	delete[] row_pointers;
 
 	return true;
 }
@@ -243,6 +264,7 @@ bool Buffer::SaveAsPNG(const std::string &filename, bool with_alpha)
 
 	unsigned char comps[4];
 	int k = 0;
+	int s = (with_alpha) ?4 : 3;
 
 	for (int j=0; j<size.H; j++)
 	{
@@ -255,12 +277,14 @@ bool Buffer::SaveAsPNG(const std::string &filename, bool with_alpha)
 		// Insert stuff into it
 		for (int i=0; i<size.W; i++, k++)
 		{
-			RGBA::GetAsRGBA(colors[k], comps, 4);
+			RGBA::ToRGBA(comps, s, colors[k]);
 
 			r.push_back(comps[0]);
 			r.push_back(comps[1]);
 			r.push_back(comps[2]);
-			r.push_back(comps[3]);
+
+			if (s == 4)
+				r.push_back(comps[3]);
 		}
 
 		// Keep the pointer to its data.
