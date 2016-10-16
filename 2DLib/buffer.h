@@ -41,6 +41,11 @@ protected:
 	void LimitPoint(Point &p);
 	void LimitRect(Rect &r);
 
+	bool LoadFromTGA(const std::string &filename);
+	bool SaveAsTGA(const std::string &filename, bool with_alpha);
+	bool LoadFromPNG(const std::string &filename);
+	bool SaveAsPNG(const std::string &filename, bool with_alpha);
+
 public:
 
 	enum ScanDirection { HORZ, VERT };
@@ -50,11 +55,8 @@ public:
 	Buffer(const Size& s, const Color& c);
 	void Reset(const Size& s, const Color& c);
 	void Reset(const Color& c);
-
-	bool SaveAsTGA(const std::string &filename, bool with_alpha = true);
-	bool ReadFromTGA(const std::string &filename);
-	bool SaveAsPNG(const std::string &filename, bool with_alpha = true);
-	bool ReadFromPNG(const std::string &filename);
+	bool Save(const std::string &filename, bool with_alpha = true);
+	bool Load(const std::string &filename, bool with_alpha = true);
 
 	void Sanitize();
 

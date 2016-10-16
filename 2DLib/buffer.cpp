@@ -8,7 +8,7 @@ Read COPYING for my extremely permissive and delicious licence.
 
 ---
 
-Parts from ReadFromPNG() and SaveFromPNG() are from a demo program at http://zarb.org/~gc/html/libpng.html
+Parts from ReadFromPNG() and SaveToPNG() are from a demo program at http://zarb.org/~gc/html/libpng.html
 Copyright 2002-2010 Guillaume Cottenceau under the X11 license:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software
@@ -51,47 +51,34 @@ void Buffer::Reset(const Color& c)
 	colors.resize(size.W * size.H, c);
 }
 
-static unsigned char bgr[3];
-static unsigned char bgra[4];
-
-bool Buffer::SaveAsTGA(const std::string &filename, bool with_alpha)
+bool Buffer::Save(const std::string &filename, bool with_alpha)
 {
-	FILE *fp = fopen(filename.c_str(), "wb");
+	std::string sub = filename.substr(filename.size() - 4);
 
-	if (fp)
-	{
-		// TGAs are stored as blue-green-red components (alpha optional).
-		unsigned char *comps = (with_alpha) ? bgra : bgr;
-		size_t comps_size = (with_alpha) ? 4 : 3;
-
-		// 18 byte header.  This is a version 2 (top-down, left-right), non-compressed, 24 or 32 bit image.
-		unsigned char header[18] = { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-		(unsigned char)(size.W & 0x00FF), (unsigned char)(size.W >> 8),
-		(unsigned char)(size.H & 0x00FF), (unsigned char)(size.H >> 8),
-		(unsigned char)(comps_size << 3), (unsigned char)0x20
-	   };
-
-		// Write header
-		fwrite(header, 18, 1, fp);
-
-		// Write all data as BGR components.
-		for (size_t i=0; i<colors.size(); i++)
-		{
-			RGBA::GetAsBGRA(colors[i], comps, comps_size);
-			fwrite(comps, comps_size, 1, fp);
-		}
-
-		//// NOTE:  No footer is written.  All readers I encountered ignored the extra "developper" data.
-
-		fclose(fp);
-
-		return true;
-	}
+	if (sub == ".png")
+		return SaveAsPNG(filename, with_alpha);
+	if (sub == ".tga")
+		return SaveAsTGA(filename, with_alpha);
 
 	return false;
 }
 
-bool Buffer::ReadFromTGA(const std::string &filename)
+bool Buffer::Load(const std::string &filename, bool with_alpha)
+{
+	std::string sub = filename.substr(filename.size() - 4);
+
+	if (sub == ".png")
+		return LoadFromPNG(filename);
+	if (sub == ".tga")
+		return LoadFromTGA(filename);
+
+	return false;
+}
+
+static unsigned char bgr[3];
+static unsigned char bgra[4];
+
+bool Buffer::LoadFromTGA(const std::string &filename)
 {
 	FILE *fp = fopen(filename.c_str(), "rb");
 
@@ -137,12 +124,49 @@ bool Buffer::ReadFromTGA(const std::string &filename)
 	return false;
 }
 
-bool Buffer::ReadFromPNG(const std::string &filename)
+bool Buffer::SaveAsTGA(const std::string &filename, bool with_alpha)
 {
-	int m_nW, m_nH;
-	png_bytep * row_pointers;
-	png_byte m_nColorType;
-	png_byte m_nBitDepth;
+	FILE *fp = fopen(filename.c_str(), "wb");
+
+	if (fp)
+	{
+		// TGAs are stored as blue-green-red components (alpha optional).
+		unsigned char *comps = (with_alpha) ? bgra : bgr;
+		size_t comps_size = (with_alpha) ? 4 : 3;
+
+		// 18 byte header.  This is a version 2 (top-down, left-right), non-compressed, 24 or 32 bit image.
+		unsigned char header[18] = { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+		(unsigned char)(size.W & 0x00FF), (unsigned char)(size.W >> 8),
+		(unsigned char)(size.H & 0x00FF), (unsigned char)(size.H >> 8),
+		(unsigned char)(comps_size << 3), (unsigned char)0x20
+	   };
+
+		// Write header
+		fwrite(header, 18, 1, fp);
+
+		// Write all data as BGR components.
+		for (size_t i=0; i<colors.size(); i++)
+		{
+			RGBA::GetAsBGRA(colors[i], comps, comps_size);
+			fwrite(comps, comps_size, 1, fp);
+		}
+
+		//// NOTE:  No footer is written.  All readers I encountered ignored the extra "developper" data.
+
+		fclose(fp);
+
+		return true;
+	}
+
+	return false;
+}
+
+bool Buffer::LoadFromPNG(const std::string &filename)
+{
+	int w, h;
+	png_bytep* row_pointers;
+	png_byte colorType;
+	png_byte bitDepth;
 
 
 	png_structp png_ptr;
@@ -180,10 +204,10 @@ bool Buffer::ReadFromPNG(const std::string &filename)
 
 	png_read_info(png_ptr, info_ptr);
 
-	m_nW = png_get_image_width(png_ptr, info_ptr);
-	m_nH = png_get_image_height(png_ptr, info_ptr);
-	m_nColorType = png_get_color_type(png_ptr, info_ptr);
-	m_nBitDepth = png_get_bit_depth(png_ptr, info_ptr);
+	w = png_get_image_width(png_ptr, info_ptr);
+	h = png_get_image_height(png_ptr, info_ptr);
+	colorType = png_get_color_type(png_ptr, info_ptr);
+	bitDepth = png_get_bit_depth(png_ptr, info_ptr);
 
 	//number_of_passes = png_set_interlace_handling(png_ptr);
 	png_read_update_info(png_ptr, info_ptr);
@@ -192,9 +216,9 @@ bool Buffer::ReadFromPNG(const std::string &filename)
 	if (setjmp(png_jmpbuf(png_ptr)))
 		PNG_Exception(filename, "[read_png_file] Error during read_image");
 
-	row_pointers = new png_bytep[sizeof(png_bytep) * m_nH];
+	row_pointers = new png_bytep[sizeof(png_bytep) * h];
 
-	for (int y = 0; y<m_nH; y++)
+	for (int y = 0; y<h; y++)
 		row_pointers[y] = new png_byte[png_get_rowbytes(png_ptr, info_ptr)];
 
 	png_read_image(png_ptr, row_pointers);
@@ -212,39 +236,42 @@ bool Buffer::ReadFromPNG(const std::string &filename)
 	return true;
 }
 
-// Note:  I wanted to create a single array of unsigned char's in which each
-// row stored in row_pointers would a be a pointer to a location in the array.
-// For some reason, it doesn't work.  Maybe the PNG engine checks on the length
-// of each continuous row to match the width ...
-
-// So I use a new and a delete.
-
 bool Buffer::SaveAsPNG(const std::string &filename, bool with_alpha)
 {
-	std::vector<unsigned char *> all_rows;
+	std::vector<std::vector<unsigned char>> all_rows;
+	std::vector<unsigned char *> p_rows;
+
 	unsigned char comps[4];
 	int k = 0;
 
 	for (int j=0; j<size.H; j++)
 	{
-		std::vector<unsigned char> *row = new std::vector<unsigned char>();
+		// Push an empty vector
+		all_rows.push_back(std::vector<unsigned char>());
 
+		// Get a reference to it
+		std::vector<unsigned char> &r = all_rows[all_rows.size() - 1];
+
+		// Insert stuff into it
 		for (int i=0; i<size.W; i++, k++)
 		{
 			RGBA::GetAsRGBA(colors[k], comps, 4);
 
-			row->push_back(comps[0]);
-			row->push_back(comps[1]);
-			row->push_back(comps[2]);
-			row->push_back(comps[3]);
+			r.push_back(comps[0]);
+			r.push_back(comps[1]);
+			r.push_back(comps[2]);
+			r.push_back(comps[3]);
 		}
 
-		all_rows.push_back(row->data());
+		// Keep the pointer to its data.
+		p_rows.push_back(r.data());
 	}
 
-	png_bytep* row_pointers = (png_bytep *)all_rows.data();
-	png_byte m_nColorType = 6;
-	png_byte m_nBitDepth = 8;
+	////// Done.  All nice and cleans itself up at the end of the method.
+
+	png_bytep* row_pointers = (png_bytep *)p_rows.data();
+	png_byte colorType = 6;
+	png_byte bitDepth = 8;
 
 	png_structp png_ptr;
 	//int number_of_passes;
@@ -278,7 +305,7 @@ bool Buffer::SaveAsPNG(const std::string &filename, bool with_alpha)
 		PNG_Exception(filename, "[write_png_file] Error during writing header");
 
 	png_set_IHDR(png_ptr, info_ptr, size.W, size.H,
-		m_nBitDepth, m_nColorType, PNG_INTERLACE_NONE,
+		bitDepth, colorType, PNG_INTERLACE_NONE,
 		PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
 	png_write_info(png_ptr, info_ptr);
@@ -296,10 +323,6 @@ bool Buffer::SaveAsPNG(const std::string &filename, bool with_alpha)
 	png_write_end(png_ptr, NULL);
 
 	fclose(fp);
-
-	// Clean up
-	for (auto row : all_rows)
-		delete row;
 
 	return true;
 }
