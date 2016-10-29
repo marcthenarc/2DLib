@@ -53,6 +53,25 @@ void Rect::Shrink(int s)
 	bottom -= s;
 }
 
+void Rect::Normalize()
+{
+	int l = left;
+	left = 0;
+	right -= l;
+
+	int t = top;
+	top = 0;
+	bottom -= t;
+}
+
+Rect Rect::GetNormal() const
+{
+	Rect n = *this;
+	n.Normalize();
+
+	return n;
+}
+
 int Rect::GetWidth() const
 {
 	return right - left + 1;
@@ -87,8 +106,8 @@ std::vector<Rect> Rect::SplitHorizontally(int y)
 {
 	Rect r1 = *this, r2 = *this;
 
-	r1.bottom -= y;
-	r2.top += y;
+	r1.bottom = r1.top + y - 1;
+	r2.top += y - 1;
 
 	return{ r1, r2 };
 }
@@ -97,7 +116,7 @@ std::vector<Rect> Rect::SplitVertically(int x)
 {
 	Rect r1 = *this, r2 = *this;
 
-	r1.right -= x;
+	r1.right = r1.left + x - 1;
 	r2.left += x;
 
 	return{ r1, r2 };
@@ -110,7 +129,7 @@ bool Rect::operator == (const Rect& r) const
 
 bool Rect::operator < (const Rect& r) const
 {
-	return (right - left < r.right - r.left);
+	return (right - left < r.right - r.left || bottom - top < r.bottom - r.top);
 }
 
 Rect& Rect::operator += (const Point& p)
@@ -146,7 +165,7 @@ void Rect::Limit(Size &size)
 		bottom = size.H - 1;
 }
 
-std::ostream & operator << (std::ostream &os, const Rect &r)
+std::ostream& operator << (std::ostream &os, const Rect &r)
 {
 	os << "<left=" << r.left << ", top=" << r.top << ", right=" << r.right << ", bottom=" << r.bottom << ">";
 	return os;

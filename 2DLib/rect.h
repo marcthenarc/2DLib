@@ -35,6 +35,9 @@ public:
 	void Grow(int g);
 	void Shrink(int s);
 
+	void Normalize();
+	Rect GetNormal() const;
+
 	int GetWidth() const;
 	int GetHeight() const;
 
@@ -55,3 +58,5 @@ protected:
 
 	void Limit(Size &size);
 };
+
+std::ostream& operator << (std::ostream& os, const Rect& r);
