@@ -71,8 +71,8 @@ public:
 	bool Scan(const Point &start, const Point &end, ScanDirection dir, ScanState s, const Color &c, Point& hit);
 	Rect IsolateRect(const Rect& r, const Color& avoid);
 
-	void CopyLineFromBuffer(int start1, int start2, int size, const Buffer& target);
-	void CopyRectFromBuffer(const Rect& r1, const Rect& r2, const Buffer& target);
+	void CopyLineFromBuffer(int dst, int src, int size, const Buffer& from);
+	void CopyRectFromBuffer(const Rect& dst, const Rect& src, const Buffer& from);
 
 	inline Size GetSize() const
 	{

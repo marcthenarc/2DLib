@@ -240,9 +240,9 @@ bool Buffer::LoadFromPNG(const std::string &filename)
 
 		for (size_t i = 0; i < size.W * s; i+=s)
 		{
-			rgba[0] = r[i+2];
+			rgba[0] = r[i];
 			rgba[1] = r[i+1];
-			rgba[2] = r[i];
+			rgba[2] = r[i+2];
 
 			if (s == 4)
 				rgba[3] = r[i+3];
