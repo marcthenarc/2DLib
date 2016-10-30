@@ -78,4 +78,6 @@ public:
 	{
 		return size;
 	}
+
+	void GetData(std::vector<unsigned char> &data, size_t size) const;
 };

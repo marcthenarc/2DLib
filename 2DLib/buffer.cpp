@@ -112,7 +112,7 @@ bool Buffer::LoadFromTGA(const std::string &filename)
 			if (feof(fp))
 				return false;
 
-			RGBA::FromRGBA(c, comps, comps_size);
+			RGBA::FromBGRA(c, comps, comps_size);
 			colors.push_back(c);
 		}
 
@@ -563,7 +563,7 @@ void Buffer::CopyRectFromBuffer(const Rect& dst, const Rect& src, const Buffer& 
 	int right2 = src.top * from.size.W + src.right;
 	int end = (src.bottom + 1) * from.size.W + src.left;
 
-	while(left2 != end)
+	while (left2 != end)
 	{
 		CopyLineFromBuffer(left1, left2, right1 - left1, from);
 
@@ -572,5 +572,28 @@ void Buffer::CopyRectFromBuffer(const Rect& dst, const Rect& src, const Buffer& 
 
 		left2 += from.size.W;
 		right2 += from.size.W;
+	}
+}
+
+void Buffer::GetData(std::vector<unsigned char> &data, size_t size) const
+{
+	data.clear();
+
+	unsigned char *r = nullptr;
+
+	if (size == 4)
+		r = rgba;
+	else
+		r = rgb;
+
+	for (const auto &c : colors)
+	{
+		RGBA::ToRGBA(r, size, c);
+		data.push_back(r[0]);
+		data.push_back(r[1]);
+		data.push_back(r[2]);
+
+		if (size == 4)
+			data.push_back(r[3]);
 	}
 }
