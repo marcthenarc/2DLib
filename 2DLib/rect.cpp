@@ -107,7 +107,7 @@ std::vector<Rect> Rect::SplitHorizontally(int y)
 	Rect r1 = *this, r2 = *this;
 
 	r1.bottom = r1.top + y - 1;
-	r2.top += y - 1;
+	r2.top += y;
 
 	return{ r1, r2 };
 }
