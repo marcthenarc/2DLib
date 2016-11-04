@@ -170,27 +170,27 @@ bool Buffer::LoadFromPNG(const std::string &filename)
 	FILE *fp = fopen(filename.c_str(), "rb");
 
 	if (!fp)
-		PNG_Exception(filename, "[read_png_file] File %s could not be opened for reading");
+		throw(PNG_Exception(filename, "[read_png_file] File %s could not be opened for reading."));
 
 	char header[8];    // 8 is the maximum size that can be checked
 	fread(header, 1, 8, fp);
 
 	if (png_sig_cmp((png_const_bytep)header, 0, 8))
-		PNG_Exception(filename, "[read_png_file] File %s is not recognized as a PNG file");
+		throw(PNG_Exception(filename, "[read_png_file] File %s is not recognized as a PNG file."));
 
 	/* initialize stuff */
 	png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
 	if (!png_ptr)
-		PNG_Exception(filename, "[read_png_file] png_create_read_struct failed");
+		throw(PNG_Exception(filename, "[read_png_file] png_create_read_struct failed"));
 
 	png_infop info_ptr = png_create_info_struct(png_ptr);
 
 	if (!info_ptr)
-		PNG_Exception(filename, "[read_png_file] png_create_info_struct failed");
+		throw(PNG_Exception(filename, "[read_png_file] png_create_info_struct failed"));
 
 	if (setjmp(png_jmpbuf(png_ptr)))
-		PNG_Exception(filename, "[read_png_file] Error during init_io");
+		throw(PNG_Exception(filename, "[read_png_file] Error during init_io"));
 
 	png_init_io(png_ptr, fp);
 	png_set_sig_bytes(png_ptr, 8);
@@ -207,7 +207,7 @@ bool Buffer::LoadFromPNG(const std::string &filename)
 
 	/* read file */
 	if (setjmp(png_jmpbuf(png_ptr)))
-		PNG_Exception(filename, "[read_png_file] Error during read_image");
+		throw(PNG_Exception(filename, "[read_png_file] Error during read_image"));
 
 	png_bytep* row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * size.H);
 	for (int y = 0; y < size.H; y++)
@@ -306,27 +306,27 @@ bool Buffer::SaveAsPNG(const std::string &filename, bool with_alpha)
 	FILE *fp = fopen(filename.c_str(), "wb");
 
 	if (!fp)
-		PNG_Exception(filename, "[write_png_file] File %s could not be opened for writing");
+		throw(PNG_Exception(filename, "[write_png_file] File %s could not be opened for writing"));
 
 	/* initialize stuff */
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
 	if (!png_ptr)
-		PNG_Exception(filename, "[write_png_file] png_create_write_struct failed");
+		throw(PNG_Exception(filename, "[write_png_file] png_create_write_struct failed"));
 
 	info_ptr = png_create_info_struct(png_ptr);
 
 	if (!info_ptr)
-		PNG_Exception(filename, "[write_png_file] png_create_info_struct failed");
+		throw(PNG_Exception(filename, "[write_png_file] png_create_info_struct failed"));
 
 	if (setjmp(png_jmpbuf(png_ptr)))
-		PNG_Exception(filename, "[write_png_file] Error during init_io");
+		throw(PNG_Exception(filename, "[write_png_file] Error during init_io"));
 
 	png_init_io(png_ptr, fp);
 
 	/* write header */
 	if (setjmp(png_jmpbuf(png_ptr)))
-		PNG_Exception(filename, "[write_png_file] Error during writing header");
+		throw(PNG_Exception(filename, "[write_png_file] Error during writing header"));
 
 	png_set_IHDR(png_ptr, info_ptr, size.W, size.H,
 		bitDepth, colorType, PNG_INTERLACE_NONE,
@@ -336,13 +336,13 @@ bool Buffer::SaveAsPNG(const std::string &filename, bool with_alpha)
 
 	/* write bytes */
 	if (setjmp(png_jmpbuf(png_ptr)))
-		PNG_Exception(filename, "[write_png_file] Error during writing bytes");
+		throw(PNG_Exception(filename, "[write_png_file] Error during writing bytes"));
 
 	png_write_image(png_ptr, row_pointers);
 
 	/* end write */
 	if (setjmp(png_jmpbuf(png_ptr)))
-		PNG_Exception(filename, "[write_png_file] Error during end of write");
+		throw(PNG_Exception(filename, "[write_png_file] Error during end of write"));
 
 	png_write_end(png_ptr, NULL);
 

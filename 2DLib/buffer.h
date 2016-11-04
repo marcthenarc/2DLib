@@ -22,14 +22,21 @@ Buffer class in which we manipulate the color data.
 
 class PNG_Exception
 {
-	std::string m_strFilename, m_strError;
+	std::string strError;
 
 public:
 
-	PNG_Exception(const std::string &fn, const std::string &err) : m_strFilename(fn), m_strError(err) { }
+	PNG_Exception(const std::string &fn, const std::string &err)
+	{
+		char buffer[1024];
+		sprintf_s(buffer, err.c_str(), fn.c_str());
+		strError = buffer;
+	}
+
 	~PNG_Exception() { }
-	std::string GetError() { return m_strError; }
+	std::string GetError() { return strError; }
 };
+
 
 class Buffer
 {
