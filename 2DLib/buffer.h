@@ -77,6 +77,7 @@ public:
 	void FillRect(const Rect& r, const Color& c);
 	bool Scan(const Point &start, const Point &end, ScanDirection dir, ScanState s, const Color &c, Point& hit);
 	Rect IsolateRect(const Rect& r, const Color& avoid);
+	bool IsRectEmpty(const Rect& r, const Color& empty = RGBA::NoAlpha);
 
 	void CopyLineFromBuffer(int dst, int src, int size, const Buffer& from);
 	void CopyRectFromBuffer(const Rect& dst, const Rect& src, const Buffer& from);

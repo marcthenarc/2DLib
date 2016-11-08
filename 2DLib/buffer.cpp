@@ -548,6 +548,27 @@ Rect Buffer::IsolateRect(const Rect& r, const Color& avoid)
 	return lrc;
 }
 
+bool Buffer::IsRectEmpty(const Rect& r, const Color& empty)
+{
+	for (size_t y = r.top; y <= r.bottom; y++)
+	{
+		for (size_t x = r.left; x <= r.right; x++)
+		{
+			const Color& c = colors[y * size.W + x];
+
+			if (empty == c)
+				continue;
+
+			if (empty == RGBA::NoAlpha && c.a == 0.f)
+				continue;
+				
+			return false;
+		}
+	}
+
+	return true;
+}
+
 void Buffer::CopyLineFromBuffer(int dst, int src, int size,  const Buffer& from)
 {
 	for (int i = 0; i <= size; i++, dst++, src++)
