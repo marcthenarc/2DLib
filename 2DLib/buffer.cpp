@@ -539,7 +539,15 @@ Rect Buffer::IsolateRect(const Rect& r, const Color& avoid)
 
 	// Scan horizontally and go upon until we hit something.
 	while (Scan(lrc.GetBottomLeft(), lrc.GetBottomRight(), HORZ, MUST_ONLY_FIND, avoid, notUsed))
+	{
 		lrc.bottom--;
+
+		if (lrc.bottom == lrc.top)
+		{
+			lrc.top--;
+			break;
+		}
+	}
 
 	// Scan vertically and go right until we hit something.
 	while (Scan(lrc.GetTopRight(), lrc.GetBottomRight(), VERT, MUST_ONLY_FIND, avoid, notUsed))
@@ -616,5 +624,38 @@ void Buffer::GetData(std::vector<unsigned char> &data, size_t size) const
 
 		if (size == 4)
 			data.push_back(r[3]);
+	}
+}
+
+void Buffer::Grayscale()
+{
+	auto dot = [](Color a, Color b) { return (a.r * b.r + a.g * b.g + a.b * b.b); };
+
+	Color base(0.222f, 0.707, 0.071, 1.f);
+
+	for (auto &c : colors)
+	{
+		float alpha = c.a;
+		c.a = (c = Color(dot(c, base))).a = alpha;
+	}
+}
+
+Color Buffer::Average()
+{
+	Color base = RGBA::Black;
+	int n = 0;
+
+	for (const auto &c : colors)
+		base += c;
+
+	return (base / (float)colors.size());
+}
+
+void Buffer::FullAlpha(const Color& bg, float t)
+{
+	for (auto &c : colors)
+	{
+		if (c.a < t)
+			c = bg;
 	}
 }
