@@ -87,5 +87,11 @@ public:
 		return size;
 	}
 
+	void FullAlpha(const Color& c, float t = 1.f);
+
 	void GetData(std::vector<unsigned char> &data, size_t size) const;
+
+	void Grayscale();
+
+	Color Average();
 };
