@@ -558,9 +558,9 @@ Rect Buffer::IsolateRect(const Rect& r, const Color& avoid)
 
 bool Buffer::IsRectEmpty(const Rect& r, const Color& empty)
 {
-	for (size_t y = r.top; y <= r.bottom; y++)
+	for (int y = r.top; y <= r.bottom; y++)
 	{
-		for (size_t x = r.left; x <= r.right; x++)
+		for (int x = r.left; x <= r.right; x++)
 		{
 			const Color& c = colors[y * size.W + x];
 
